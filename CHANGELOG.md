@@ -2,6 +2,16 @@
 
 Docs: https://docs.openclaw.ai
 
+## 2026.6.2-snowmountain.1
+
+### Highlights
+
+- Fork build of upstream `2026.6.2` with the MiniMax-M3 thinking-disabled wrapper fix applied (see PR https://github.com/openclaw/openclaw/pull/90138). MiniMax-M3 (and M3.x) now bypasses `createMinimaxThinkingDisabledWrapper`, so the model receives no forced `thinking: { type: "disabled" }` injection and returns visible content as expected. M2.x behavior is unchanged.
+
+### Distribution
+
+- Published as a GitHub Release asset on the SnowMountain fork (`IamVNIE/openclaw`). Not on npm. Install with `npm install -g <release-asset-url>`.
+
 ## 2026.6.2
 
 ### Highlights
