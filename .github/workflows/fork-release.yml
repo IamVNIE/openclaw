@@ -1,0 +1,75 @@
+name: Fork Release Build
+
+on:
+  push:
+    tags:
+      - "v*-snowmountain*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name to publish (e.g. v2026.6.2-snowmountain.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.2.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Pack tarball
+        id: pack
+        run: |
+          set -euxo pipefail
+          npm pack
+          TGZ=$(ls openclaw-*.tgz | head -1)
+          echo "tgz=$TGZ" >> "$GITHUB_OUTPUT"
+          sha256sum "$TGZ" > "$TGZ.sha256"
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          TAG="${{ steps.tag.outputs.name }}"
+          TGZ="${{ steps.pack.outputs.tgz }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$TGZ" "$TGZ.sha256" --clobber
+          else
+            gh release create "$TAG" "$TGZ" "$TGZ.sha256" \
+              --title "$TAG" \
+              --notes "SnowMountain fork build. Includes MiniMax-M3 thinking-disabled wrapper fix (PR openclaw#90138). Install: \`npm install -g <asset-url>\`."
+          fi
