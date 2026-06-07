@@ -55,7 +55,7 @@ describe("provider public artifacts", () => {
     expect(
       surface?.resolveThinkingProfile?.({ provider: "minimax", modelId: "MiniMax-M3" })
         ?.defaultLevel,
-    ).toBe("low");
+    ).toBe("adaptive");
   });
 
   it("resolves multi-provider policy artifacts by manifest-owned provider id", async () => {

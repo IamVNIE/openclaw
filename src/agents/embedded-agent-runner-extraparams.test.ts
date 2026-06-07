@@ -773,6 +773,35 @@ describe("applyExtraParamsToAgent", () => {
     ]);
   });
 
+  it("rewrites MiniMax-M3 default budget thinking to adaptive", () => {
+    const payloads: Record<string, unknown>[] = [];
+    const baseStreamFn: StreamFn = (_model, _context, options) => {
+      const payload: Record<string, unknown> = {
+        thinking: { type: "enabled", budget_tokens: 1024 },
+      };
+      options?.onPayload?.(payload, _model);
+      payloads.push(payload);
+      return {} as ReturnType<StreamFn>;
+    };
+    const agent = { streamFn: baseStreamFn };
+
+    applyExtraParamsToAgent(agent, undefined, "minimax", "MiniMax-M3", undefined, "adaptive");
+
+    const model = {
+      api: "anthropic-messages",
+      provider: "minimax",
+      id: "MiniMax-M3",
+    } as Model<"anthropic-messages">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, {});
+
+    expect(payloads).toStrictEqual([
+      {
+        thinking: { type: "adaptive" },
+      },
+    ]);
+  });
+
   it("preserves downstream explicit MiniMax-M3 thinking overrides", () => {
     const payloads: Record<string, unknown>[] = [];
     const baseStreamFn: StreamFn = (_model, _context, options) => {

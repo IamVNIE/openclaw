@@ -46,6 +46,15 @@ function isDisabledThinkingPayload(value: unknown): boolean {
   );
 }
 
+function isEnabledThinkingPayload(value: unknown): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).type === "enabled"
+  );
+}
+
 /** @deprecated MiniMax provider-owned stream helper; do not use from third-party plugins. */
 export function createMinimaxFastModeWrapper(
   baseStreamFn: StreamFn | undefined,
@@ -102,12 +111,16 @@ export function createMinimaxThinkingDisabledWrapper(
       onPayload: (payload) => {
         if (payload && typeof payload === "object") {
           const payloadObj = payload as Record<string, unknown>;
-          if (
-            requiresThinking &&
-            thinkingLevel === undefined &&
-            isDisabledThinkingPayload(payloadObj.thinking)
-          ) {
-            delete payloadObj.thinking;
+          if (requiresThinking) {
+            if (thinkingLevel === undefined && isDisabledThinkingPayload(payloadObj.thinking)) {
+              delete payloadObj.thinking;
+            } else if (
+              thinkingLevel !== "off" &&
+              (isEnabledThinkingPayload(payloadObj.thinking) ||
+                isDisabledThinkingPayload(payloadObj.thinking))
+            ) {
+              payloadObj.thinking = { type: "adaptive" };
+            }
           }
           // M2.x only needs the shim when no earlier wrapper set thinking.
           // Downstream payload hooks still run after this wrapper.
