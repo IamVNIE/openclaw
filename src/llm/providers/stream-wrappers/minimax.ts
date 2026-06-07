@@ -55,6 +55,12 @@ function isEnabledThinkingPayload(value: unknown): boolean {
   );
 }
 
+function resolvePositiveMaxTokens(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined;
+}
+
 /** @deprecated MiniMax provider-owned stream helper; do not use from third-party plugins. */
 export function createMinimaxFastModeWrapper(
   baseStreamFn: StreamFn | undefined,
@@ -120,6 +126,10 @@ export function createMinimaxThinkingDisabledWrapper(
                 isDisabledThinkingPayload(payloadObj.thinking))
             ) {
               payloadObj.thinking = { type: "adaptive" };
+              const maxTokens = resolvePositiveMaxTokens(options?.maxTokens);
+              if (maxTokens !== undefined) {
+                payloadObj.max_tokens = maxTokens;
+              }
             }
           }
           // M2.x only needs the shim when no earlier wrapper set thinking.
